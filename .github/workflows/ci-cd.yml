@@ -1,0 +1,42 @@
+name: CI/CD
+
+on:
+  push:
+    branches:
+      - master
+      - '**'   # будь-яка інша гілка
+  pull_request:
+
+jobs:
+  test:
+    name: Test Jekyll site
+    runs-on: ubuntu-latest
+    if: github.ref != 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.7
+      - run: gem install bundler
+      - run: bundle install --path vendor
+      - run: bundle exec jekyll build -d test
+      - run: ls -l test  # переглянути результат тестового білду
+
+  deploy:
+    name: Deploy Jekyll site to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.7
+      - run: gem install bundler
+      - run: bundle install --path vendor
+      - run: bundle exec jekyll build -d public
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v6
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
